@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ศักยภาพพี่เลี้ยง ภาคกลาง — Baseline 2569</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', 'Noto Sans Thai', sans-serif; background: #f4f6f9; color: #222; }
+  header { background: linear-gradient(135deg,#006B3C 0%,#008B4A 100%); color: #fff; padding: 20px 32px; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p  { font-size: 0.9rem; opacity: .85; margin-top: 4px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); padding: 24px; margin-bottom: 24px; }
+  h2 { font-size: 1.1rem; font-weight: 700; color: #006B3C; margin-bottom: 16px; border-left: 4px solid #006B3C; padding-left: 10px; }
+  h3 { font-size: 0.95rem; font-weight: 700; color: #444; margin-bottom: 8px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 10px; border-radius: 20px; border: 1.5px solid #ddd; font-size: 0.83rem; transition: all .2s; user-select: none; }
+  .legend-item.active { border-color: currentColor; }
+  .legend-item.hidden { opacity: .35; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .chart-wrap { position: relative; height: 480px; }
+  .mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .mini-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 5px rgba(0,0,0,.07); padding: 16px; }
+  .mini-card h3 { font-size: 0.88rem; text-align: center; margin-bottom: 8px; color: #333; }
+  .mini-wrap { height: 200px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { background: #f0f4f0; color: #006B3C; padding: 8px 6px; text-align: center; font-weight: 700; border: 1px solid #ddd; }
+  th.name-col { text-align: left; }
+  td { padding: 7px 6px; text-align: center; border: 1px solid #eee; }
+  td:first-child { text-align: left; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .avg-row td { background: #e8f5ee !important; font-weight: 600; }
+  .hi  { color: #1a7a3c; font-weight: 600; }
+  .mid { color: #e07b00; }
+  .lo  { color: #b0263e; }
+  .scale-note { font-size: 0.78rem; color: #666; margin-top: 10px; }
+  .method-box { background: #f8f9fa; border-radius: 8px; padding: 16px; font-size: 0.84rem; line-height: 1.7; }
+  .method-box table { font-size: 0.82rem; margin-top: 10px; }
+  .method-box th { background: #e8eeea; }
+  .badge { display: inline-block; background: #e8f5ee; color: #006B3C; border-radius: 12px; padding: 2px 10px; font-size: 0.78rem; margin-left: 6px; }
+  .score-bar-wrap { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .score-bar-label { width: 170px; font-size: 0.82rem; flex-shrink: 0; }
+  .score-bar-bg { flex: 1; background: #eee; border-radius: 4px; height: 10px; }
+  .score-bar-fill { height: 10px; border-radius: 4px; background: #006B3C; }
+  .score-val { font-size: 0.82rem; width: 40px; text-align: right; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ศักยภาพพี่เลี้ยง — ภาคกลาง</h1>
+  <p>โครงการเศรษฐกิจฐานราก 2569 | Baseline Assessment | n = 6 คน</p>
+</header>
+
+<div class="container">
+
+<!-- SUMMARY BAR -->
+<div class="card">
+  <h2>สรุปค่าเฉลี่ยกลุ่ม (10 ตัวชี้วัด)</h2>
+  <div id="summary-bars"></div>
+  <p class="scale-note">คะแนน 0–100% | เกณฑ์: <span class="hi">■ ≥70% ดี</span> &nbsp; <span class="mid">■ 50–69% ปานกลาง</span> &nbsp; <span class="lo">■ &lt;50% ต้องพัฒนา</span></p>
+</div>
+
+<!-- MAIN SPIDER -->
+<div class="card">
+  <h2>Spider Chart — เปรียบเทียบทุกคน</h2>
+  <div class="legend" id="legend"></div>
+  <div class="chart-wrap"><canvas id="mainRadar"></canvas></div>
+</div>
+
+<!-- INDIVIDUAL MINI -->
+<div class="card">
+  <h2>Spider Chart รายบุคคล</h2>
+  <div class="mini-grid" id="miniGrid"></div>
+</div>
+
+<!-- SOURCE TABLE -->
+<div class="card">
+  <h2>ตารางคะแนนดิบ (หน่วย: %)</h2>
+  <div style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th class="name-col">ชื่อพี่เลี้ยง</th><th>1.1 สื่อสารแนวคิดโครงการ</th><th>1.2 โค้ช/เสริมพลัง</th><th>2.1 ใช้ข้อมูล–ติดตามผล</th><th>2.2 เขียนรายงาน</th><th>3.1 ต้นแบบ HL</th><th>3.2 ความรอบรู้ FL</th><th>3.3 IDP/ARE</th><th>3.4 นำบทเรียน ARE</th><th>4.1 ยอมรับจากชุมชน</th><th>4.2 เชื่อมโยงภาคี</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr><td style="font-weight:600;white-space:nowrap">พงษ์สิทธิ์ กิจถาวรรัตน์</td><td class="mid">62.5</td><td class="mid">59.4</td><td class="mid">62.5</td><td class="mid">50.0</td><td class="lo">41.2</td><td class="lo">36.7</td><td class="lo">25.0</td><td class="lo">37.5</td><td class="mid">62.5</td><td class="lo">34.4</td></tr>
+<tr><td style="font-weight:600;white-space:nowrap">อังคณา ขาวเผือก</td><td class="hi">71.9</td><td class="mid">67.2</td><td class="mid">65.6</td><td class="lo">31.2</td><td class="mid">60.4</td><td class="lo">44.2</td><td class="lo">37.5</td><td class="lo">25.0</td><td class="hi">75.0</td><td class="hi">75.0</td></tr>
+<tr><td style="font-weight:600;white-space:nowrap">ลักคณา อยู่เปรม</td><td class="mid">62.5</td><td class="mid">60.9</td><td class="mid">56.2</td><td class="lo">43.8</td><td class="mid">59.1</td><td class="lo">49.2</td><td class="mid">50.0</td><td class="lo">25.0</td><td class="hi">81.2</td><td class="hi">78.1</td></tr>
+<tr><td style="font-weight:600;white-space:nowrap">ปราณี ชาวสวนแพ</td><td class="mid">68.8</td><td class="hi">71.9</td><td class="hi">75.0</td><td class="mid">50.0</td><td class="mid">65.4</td><td class="mid">53.3</td><td class="lo">31.2</td><td class="lo">37.5</td><td class="hi">81.2</td><td class="mid">68.8</td></tr>
+<tr><td style="font-weight:600;white-space:nowrap">ณัฐนิชา จันทิพย์</td><td class="mid">65.6</td><td class="mid">62.5</td><td class="mid">68.8</td><td class="mid">56.2</td><td class="mid">54.6</td><td class="mid">54.2</td><td class="lo">25.0</td><td class="mid">50.0</td><td class="mid">68.8</td><td class="mid">65.6</td></tr>
+<tr><td style="font-weight:600;white-space:nowrap">จุฑาเนตร สาสดี</td><td class="mid">65.6</td><td class="mid">62.5</td><td class="mid">53.1</td><td class="lo">43.8</td><td class="lo">46.2</td><td class="mid">53.3</td><td class="lo">31.2</td><td class="lo">25.0</td><td class="mid">68.8</td><td class="mid">50.0</td></tr>
+<tr class="avg-row"><td>ค่าเฉลี่ยกลุ่ม</td><td class="mid"><strong>66.2</strong></td><td class="mid"><strong>64.1</strong></td><td class="mid"><strong>63.5</strong></td><td class="lo"><strong>45.8</strong></td><td class="mid"><strong>54.5</strong></td><td class="lo"><strong>48.5</strong></td><td class="lo"><strong>33.3</strong></td><td class="lo"><strong>33.3</strong></td><td class="hi"><strong>72.9</strong></td><td class="mid"><strong>62.0</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="scale-note" style="margin-top:8px">สูตรแปลง: (คะแนน Likert − 1) / 4 × 100 | HL/FL: (ค่าเฉลี่ยมิติ − 1) / 4 × 100</p>
+</div>
+
+<!-- METHOD -->
+<div class="card">
+  <h2>วิธีคำนวณ & แหล่งข้อมูล</h2>
+  <div class="method-box">
+    <p><strong>ไฟล์ที่ใช้:</strong></p>
+    <p>• ไฟล์ 1: แบบประเมินศักยภาพพี่เลี้ยง (สมรรถนะ 1–8, Likert 1–5) — ผู้ประเมิน: ทีมประเมิน + หน่วยจัดการ</p>
+    <p>• ไฟล์ 2: แบบประเมิน HL+FL ของพี่เลี้ยง (6 มิติ × 5 ข้อ, Likert 1–5)</p>
+    <br>
+    <p><strong>การแมปตัวชี้วัด:</strong></p>
+    <table>
+      <thead><tr><th>ตัวชี้วัด</th><th>แหล่งข้อมูล</th><th>ข้อที่ใช้</th></tr></thead>
+      <tbody>
+        <tr><td>1.1 สื่อสารแนวคิดโครงการ</td><td>ไฟล์ 1</td><td>สมรรถนะ 1 (ข้อ 1.1–1.4): เอื้ออำนวยกระบวนการพัฒนาโครงการ</td></tr>
+        <tr><td>1.2 โค้ช/เสริมพลัง</td><td>ไฟล์ 1</td><td>สมรรถนะ 4 (4.1–4.5) + สมรรถนะ 5 (5.1–5.2): ติดตามเสริมพลัง+พัฒนาแกนนำ</td></tr>
+        <tr><td>2.1 ใช้ข้อมูล–ติดตามผล</td><td>ไฟล์ 1</td><td>3.3 ทักษะนำข้อมูล + 4.1 แผนติดตาม + 4.2 ลงพื้นที่ + 4.3 เก็บรวบรวมข้อมูล</td></tr>
+        <tr><td>2.2 เขียนรายงาน</td><td>ไฟล์ 1</td><td>2.4 ความรู้เขียนรายงาน + 8 CCAT (ถอดบทเรียน)</td></tr>
+        <tr><td>3.1 ต้นแบบ HL</td><td>ไฟล์ 1 + 2</td><td>3.5 เป็นต้นแบบ HL/FL (ไฟล์ 1) + ค่าเฉลี่ย HL ทั้ง 6 มิติ (ไฟล์ 2)</td></tr>
+        <tr><td>3.2 ความรอบรู้ FL</td><td>ไฟล์ 2</td><td>ค่าเฉลี่ย FL ทั้ง 6 มิติ (เข้าถึง เข้าใจ โต้ตอบ ตัดสินใจ เปลี่ยนพฤติกรรม บอกต่อ)</td></tr>
+        <tr><td>3.3 IDP/ARE</td><td>ไฟล์ 1</td><td>2.2 ความรู้ ARE + 3.2 ทักษะ ARE</td></tr>
+        <tr><td>3.4 นำบทเรียน ARE</td><td>ไฟล์ 1</td><td>8 CCAT: ระดับความสามารถสรุปและถอดบทเรียน</td></tr>
+        <tr><td>4.1 ยอมรับจากชุมชน</td><td>ไฟล์ 1</td><td>5.1 ความสัมพันธ์กับแกนนำ + 6.5 เป็นที่ยอมรับ</td></tr>
+        <tr><td>4.2 เชื่อมโยงภาคี</td><td>ไฟล์ 1</td><td>สมรรถนะ 6 (6.1–6.4): การเชื่อมประสานภาคีเครือข่าย</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <p><strong>สูตรแปลงคะแนน:</strong> (Likert − 1) ÷ 4 × 100 = %</p>
+    <p style="margin-top:4px">หากพี่เลี้ยงถูกประเมินโดยหลายฝ่าย ค่าเฉลี่ยของทุกฝ่ายถูกนำมาคิดรวม</p>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+const IND = ["1.1 สื่อสารแนวคิดโครงการ", "1.2 โค้ช/เสริมพลัง", "2.1 ใช้ข้อมูล–ติดตามผล", "2.2 เขียนรายงาน", "3.1 ต้นแบบ HL", "3.2 ความรอบรู้ FL", "3.3 IDP/ARE", "3.4 นำบทเรียน ARE", "4.1 ยอมรับจากชุมชน", "4.2 เชื่อมโยงภาคี"];
+const SHORT = ["1.1 สื่อสาร\nโครงการ", "1.2 โค้ช/\nเสริมพลัง", "2.1 ใช้\nข้อมูล", "2.2 เขียน\nรายงาน", "3.1 ต้นแบบ\nHL", "3.2 รอบรู้\nFL", "3.3 IDP/\nARE", "3.4 ถอด\nบทเรียน", "4.1 ยอมรับ\nชุมชน", "4.2 เชื่อม\nภาคี"];
+const GROUP = [66.2, 64.1, 63.5, 45.8, 54.5, 48.5, 33.3, 33.3, 72.9, 62.0];
+const NAMES = ["พงษ์สิทธิ์ กิจถาวรรัตน์", "อังคณา ขาวเผือก", "ลักคณา อยู่เปรม", "ปราณี ชาวสวนแพ", "ณัฐนิชา จันทิพย์", "จุฑาเนตร สาสดี"];
+const SCORES = [[62.5, 59.4, 62.5, 50.0, 41.2, 36.7, 25.0, 37.5, 62.5, 34.4], [71.9, 67.2, 65.6, 31.2, 60.4, 44.2, 37.5, 25.0, 75.0, 75.0], [62.5, 60.9, 56.2, 43.8, 59.1, 49.2, 50.0, 25.0, 81.2, 78.1], [68.8, 71.9, 75.0, 50.0, 65.4, 53.3, 31.2, 37.5, 81.2, 68.8], [65.6, 62.5, 68.8, 56.2, 54.6, 54.2, 25.0, 50.0, 68.8, 65.6], [65.6, 62.5, 53.1, 43.8, 46.2, 53.3, 31.2, 25.0, 68.8, 50.0]];
+const COLORS = ["rgba(220,53,69,0.85)", "rgba(0,123,255,0.85)", "rgba(40,167,69,0.85)", "rgba(255,140,0,0.85)", "rgba(111,66,193,0.85)", "rgba(23,162,184,0.85)"];
+const BG = ["rgba(220,53,69,0.08)", "rgba(0,123,255,0.08)", "rgba(40,167,69,0.08)", "rgba(255,140,0,0.08)", "rgba(111,66,193,0.08)", "rgba(23,162,184,0.08)"];
+
+// ---- SUMMARY BARS ----
+(function(){
+  const el = document.getElementById('summary-bars');
+  IND.forEach(function(label, i){
+    const v = GROUP[i];
+    const cls = v >= 70 ? 'hi' : v >= 50 ? 'mid' : 'lo';
+    el.innerHTML += '<div class="score-bar-wrap">'
+      + '<span class="score-bar-label">' + label + '</span>'
+      + '<div class="score-bar-bg"><div class="score-bar-fill ' + cls + '" style="width:' + v + '%;background:'+(v>=70?'#1a7a3c':v>=50?'#e07b00':'#b0263e')+'"></div></div>'
+      + '<span class="score-val ' + cls + '">' + v + '%</span>'
+      + '</div>';
+  });
+})();
+
+// ---- MAIN RADAR ----
+const mainCtx = document.getElementById('mainRadar').getContext('2d');
+const datasets = [];
+
+// Group average
+datasets.push({
+  label: 'ค่าเฉลี่ยกลุ่ม',
+  data: GROUP,
+  borderColor: 'rgba(0,107,60,1)',
+  backgroundColor: 'rgba(0,107,60,0.12)',
+  borderWidth: 3,
+  pointRadius: 5,
+  pointBackgroundColor: 'rgba(0,107,60,1)',
+  borderDash: [],
+});
+
+NAMES.forEach(function(name, i){
+  datasets.push({
+    label: name,
+    data: SCORES[i],
+    borderColor: COLORS[i],
+    backgroundColor: BG[i],
+    borderWidth: 1.5,
+    pointRadius: 3,
+    pointBackgroundColor: COLORS[i],
+    hidden: true,
+  });
+});
+
+const mainChart = new Chart(mainCtx, {
+  type: 'radar',
+  data: { labels: SHORT, datasets: datasets },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        min: 0, max: 100,
+        ticks: { stepSize: 20, font: { size: 11 }, callback: function(v){ return v+'%'; } },
+        pointLabels: { font: { size: 12, family: 'Sarabun, sans-serif' }, color: '#333' },
+        grid: { color: '#ddd' },
+        angleLines: { color: '#ccc' },
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(ctx){ return ctx.dataset.label + ': ' + ctx.parsed.r + '%'; }
+        }
+      }
+    }
+  }
+});
+
+// ---- LEGEND ----
+(function(){
+  const wrap = document.getElementById('legend');
+
+  // group avg toggle
+  const gi = document.createElement('div');
+  gi.className = 'legend-item active';
+  gi.style.color = 'rgba(0,107,60,1)';
+  gi.innerHTML = '<span class="legend-dot" style="background:rgba(0,107,60,1)"></span>ค่าเฉลี่ยกลุ่ม';
+  gi.onclick = function(){
+    const ds = mainChart.data.datasets[0];
+    ds.hidden = !ds.hidden;
+    gi.classList.toggle('hidden', ds.hidden);
+    mainChart.update();
+  };
+  wrap.appendChild(gi);
+
+  NAMES.forEach(function(name, i){
+    const item = document.createElement('div');
+    item.className = 'legend-item hidden';
+    item.style.color = COLORS[i];
+    item.innerHTML = '<span class="legend-dot" style="background:' + COLORS[i] + '"></span>' + name;
+    item.onclick = function(){
+      const ds = mainChart.data.datasets[i + 1];
+      ds.hidden = !ds.hidden;
+      item.classList.toggle('hidden', ds.hidden);
+      mainChart.update();
+    };
+    wrap.appendChild(item);
+  });
+})();
+
+// ---- MINI CHARTS ----
+(function(){
+  const grid = document.getElementById('miniGrid');
+  NAMES.forEach(function(name, i){
+    const mc = document.createElement('div');
+    mc.className = 'mini-card';
+    mc.innerHTML = '<h3>' + name + '</h3><div class="mini-wrap"><canvas id="mini' + i + '"></canvas></div>';
+    grid.appendChild(mc);
+    const ctx = document.getElementById('mini' + i).getContext('2d');
+    new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: SHORT,
+        datasets: [
+          { label: name, data: SCORES[i], borderColor: COLORS[i], backgroundColor: BG[i], borderWidth: 2, pointRadius: 2 },
+          { label: 'กลุ่ม', data: GROUP, borderColor: 'rgba(0,107,60,.6)', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0 },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            min: 0, max: 100,
+            ticks: { display: false },
+            pointLabels: { font: { size: 9 }, color: '#555' },
+            grid: { color: '#e0e0e0' }, angleLines: { color: '#ccc' },
+          }
+        },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
